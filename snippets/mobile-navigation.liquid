@@ -1,0 +1,118 @@
+<nav id="mobile-nav">
+  <div class="inner">
+	
+    {% if section.settings.show_header_search %}
+    <form class="search-form" action="/search" method="get">
+      <input type="hidden" name="type" value="{{ settings.search_type }}" />
+      <button>{% include 'svg-search' %}</button>
+      <input type="text" name="q" placeholder="{{ 'layout.header.search' | t }}"/>
+    </form>
+    {% endif %}
+    
+    <div class="header">
+      {% include 'social-links' %}
+    </div>
+
+    {% comment %} Start of main menu {% endcomment %}
+    <ul class="plain">
+      {% for link in linklists[section.settings.menu_linklist].links %}
+      
+        {% assign has_drop_down = false %}
+        {% assign link_title = link.title | strip_html %}
+        {% if link_title == section.settings.nav_uber_name %}
+          {% assign dropdown_style = 'drop-uber' %}
+          {% assign has_drop_down = true %}
+        {% else %}
+          {% include 'has-drop-down' with link_title %}
+          {% if has_drop_down %}{% assign dropdown_style = 'drop-norm' %}{% endif %}
+        {% endif %}
+      
+        <li class="nav-item{% if link.active %} active{% endif %}">
+          <a class="nav-item-link" href="{{ link.url }}">
+            {{ link.title }}
+          </a>
+
+          {% if has_drop_down and dropdown_style == 'drop-norm' %}
+          <button class="open-sub-nav" data-sub-nav="{{ child_list_handle }}">{% include 'svg-chevron-right' %}</button>
+          
+          {% elsif has_drop_down and dropdown_style == 'drop-uber' %}
+          <button class="open-sub-nav" data-sub-nav="mega-nav">{% include 'svg-chevron-right' %}</button>
+            {% if dropdown_style == 'drop-uber' %}
+            {% capture uber_subnav %}
+            <div class="sub-nav" data-is-subnav-for="mega-nav">
+              <div class="header">
+                <a class="close-sub-nav" href="#"><span class="btn alt">{% include 'svg-chevron-left' %}</span> {{ 'layout.mobile_navigation.back' | t }}</a>
+              </div>
+
+              <ul class="sub-nav-list plain">
+                {% for i in (1..4) %}
+                {% capture uber_list_title_key %}nav_uber_list_{{i}}_title{% endcapture %}
+                {% capture uber_list_list_key %}nav_uber_list_{{i}}{% endcapture %}
+                {% if section.settings[uber_list_list_key] != blank %}
+                <li class="sub-nav-item">
+                  <span class="sub-nav-item-link">{{ section.settings[uber_list_title_key] | escape }}</span>
+                  <button class="open-sub-nav" data-sub-nav="{{ section.settings[uber_list_list_key] }}">{% include 'svg-chevron-right' %}</button>
+                </li>
+                {% endif %}
+                {% endfor %}
+              </ul>
+
+            </div>
+            {% endcapture %}
+            {% endif %}
+          {% endif %}
+        </li>
+      {% endfor %}
+
+      {% if shop.customer_accounts_enabled %}
+        {% if customer  %}
+          <li class="account-nav-item border-top"><a href="/account">{{ 'layout.customer.your_account' | t }}</a></li>
+          <li class="account-nav-item">{{ 'layout.customer.logout' | t | customer_logout_link }}</li>
+        {% else %}
+            <li class="account-nav-item border-top">{{ 'layout.customer.login' | t | customer_login_link }}</li>
+          {% if shop.customer_accounts_optional %}
+            <li class="account-nav-item">{{ 'layout.customer.create_account' | t | customer_register_link }}</li>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    </ul>
+  </div>
+  
+  {% comment %} Output sub-nav {% endcomment %}
+  {% for link in linklists[section.settings.menu_linklist].links %}
+    {% assign link_title = link.title | strip_html %}
+
+    {% if link_title == section.settings.nav_uber_name %}
+
+      {% for i in (1..4) %}
+        {% assign uber_list_list_key = 'nav_uber_list_' | append: i %}
+        {% if section.settings[uber_list_list_key] != blank %}
+          {% assign child_list_handle = section.settings[uber_list_list_key] %}
+          {% include 'mobile-navigation-sublist' %}
+  
+  		  {% assign child_list_handle = section.settings[uber_list_list_key] %}
+          {% for l in linklists[child_list_handle].links %}
+            {% assign l_title = l.title | strip_html %}
+            {% include 'has-drop-down' with l_title %}
+            {% if has_drop_down %}{% include 'mobile-navigation-sublist' %}{% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+
+    {% else %}
+    {% include 'has-drop-down' with link_title %}
+    {% if has_drop_down %}
+      {% assign store_child_list_handle = child_list_handle %}
+  	  {% include 'mobile-navigation-sublist' %}
+  
+      {% for l in linklists[store_child_list_handle].links %}
+        {% assign l_title = l.title | strip_html %}
+        {% include 'has-drop-down' with l_title %}
+  		{% if has_drop_down %}{% include 'mobile-navigation-sublist' %}{% endif %}
+  	  {% endfor %}
+    {% endif %}
+    {% endif %}
+  {% endfor %}
+  
+  {{ uber_subnav }}
+</nav>
