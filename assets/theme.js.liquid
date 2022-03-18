@@ -1077,6 +1077,9 @@ $(function($){
   
   /// General lightbox popups
   $('a[rel=lightbox]').colorbox({ minWidth: '200', maxWidth: '96%', maxHeight: '96%' });
+
+  // Size Guide popup
+  $('a[data-size-guide]').colorbox({ inline: true, minWidth: '200', width: '96%', maxWidth: '600', height: '96%', maxHeight: '600'})
   
   /// Any section load
   $(document).on('shopify:section:load', function(e){

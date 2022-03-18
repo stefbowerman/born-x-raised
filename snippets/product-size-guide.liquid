@@ -1,0 +1,85 @@
+{% comment %}
+  Params:
+    - page
+    - blocks (these come from the section settings, only look for the ones with type 'product_tag_size_guide')
+
+    First we use the default size guide
+    then we check for a block tag level override
+    then we check for a product level metafield
+{% endcomment %}
+
+{% if product %}
+
+  {% assign has_size = false %}
+  {% assign size_guide_source = false %}
+  {% assign size_guide_source_is_metafield = false %}
+  {% assign hide_size_guide_via_tag = false %}
+  {% assign has_size_option_and_size_guide_source = false %}
+  {% assign product_tag_string = product.tags | join: '$$' | handle | replace: '-', '' %}
+
+  {% if product_tag_string contains 'hidesizeguide' %}
+    {% assign hide_size_guide_via_tag = true %}
+  {% endif %}
+
+  {% for option in product.options %}  
+    {% assign option_upcase = option | upcase %}
+    {% if option_upcase == "SIZE" %}
+      {% assign has_size = true %}
+      {% break %}
+    {% endif %}
+  {% endfor %}  
+
+  {% if page != blank %}
+    {% assign size_guide_source = pages[page].content %}
+  {% endif %}
+
+  {% comment %}
+    If we have blocks, check each one of them.
+    If a block has a page set and the current product is tagged with the block tag
+    use that as the size guide source
+  {% endcomment %}
+  {% if blocks != blank %}
+    {% assign block_found = false %}
+
+    {% for block in blocks %}
+      {% if block.type == 'product_tag_size_guide' and block.settings.page != blank %}
+        {% capture tag_reduced %}{{ block.settings.tag | handle | replace: '-', '' }}{% endcapture %}
+        {% if product_tag_string contains tag_reduced %}
+          {% assign size_guide_source = pages[block.settings.page].content %}
+          {% assign block_found = true %}
+        {% endif %}
+      {% endif %}
+
+      {% if block_found %}{% break %}{% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% comment %} If a product has it's size guide metafields filled out, that's the most specific so lets use that {% endcomment %}
+  {% if product.metafields.details.size_guide_page != blank %}
+    {% assign metafield_page = pages[product.metafields.details.size_guide_page] %}
+    
+    {% if metafield_page and metafield_page.content != blank %}
+      {% assign size_guide_source = metafield_page.content %}
+      {% assign size_guide_source_is_metafield = true %}
+    {% endif %}
+  {% endif %}  
+
+  {% if has_size and size_guide_source != false %}
+    {% assign has_size_option_and_size_guide_source = true %}
+  {% endif %}   
+
+  {% if has_size_option_and_size_guide_source or size_guide_source_is_metafield %}
+    {% unless hide_size_guide_via_tag %}
+      <a href="#size-guide-lightbox-{{ product.id }}" style="text-decoration: underline" data-size-guide>Size Guide</a>
+
+      <div style="display: none;">
+        <div id="size-guide-lightbox-{{ product.id }}" class="size-guide-lightbox">
+          <h2 style="text-align: center;">Size Guide</h2>
+          <div class="size-guide-lightbox__content">
+            {{ size_guide_source }}
+          </div>
+        </div>
+      </div>
+    {% endunless %}
+  {% endif %}
+{% endif %}

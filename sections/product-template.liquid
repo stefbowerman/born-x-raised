@@ -224,6 +224,9 @@
 
       {% unless section.settings.description_location == 'under' %}
       <div class="product-description rte" itemprop="description">{{ product.description }}</div>
+      
+      {% render 'product-size-guide', page: section.settings.size_guide_page, blocks: section.blocks %}
+
       <div id="shopify-product-reviews" data-id="{{product.id}}">{{ product.metafields.spr.reviews }}</div>
       {% endunless %}
       
@@ -236,6 +239,9 @@
   
   {% if section.settings.description_location == 'under' %}
   <div class="product-description rte spaced-row reading-column" itemprop="description">{{ product.description | replace: 'fullwidth"', '" data-fullwidth="true"' }}</div>
+  
+  {% render 'product-size-guide', page: section.settings.size_guide_page, blocks: section.blocks %}
+
   <div id="shopify-product-reviews" data-id="{{product.id}}">{{ product.metafields.spr.reviews }}</div>
   {% endif %}
   
@@ -330,13 +336,22 @@
         "type": "checkbox",
         "id": "notification_show",
         "label": "Show",
-		"default": false,
+		    "default": false,
         "info": "Use this for announcements or offers, such as 'Free postage on all orders over $50'"
       },
       {
         "type": "text",
         "id": "notification_text",
         "label": "Text"
+      },
+      {
+        "type": "header",
+        "content": "Size Guide"
+      },
+      {
+        "type": "page",
+        "id": "size_guide_page",
+        "label": "Default size guide"
       },
       {
         "type": "header",
@@ -376,6 +391,25 @@
         ],
         "default": "4"
       }
-	]
+	  ],
+    "blocks": [
+      {
+        "type": "product_tag_size_guide",
+        "name": "Size Guide",
+        "settings": [
+          {
+            "type": "text",
+            "id": "tag",
+            "label": "Product tag",
+            "info": "Products with this tag will use this size guide"
+          },
+          {
+            "type": "page",
+            "id": "page",
+            "label": "Size guide page"
+          }
+        ]
+      }
+    ]
   }
 {% endschema %}
