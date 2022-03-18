@@ -1,78 +1,90 @@
-{% if section.settings.logo != blank %}
-<style type="text/css">
-  .logo img {
-    width: {{ section.settings.logo_width }}px;
-  }
-</style>
-{% endif %}
-
 {% if template == 'password' or template == 'gift_card' %}
 
 {% comment %} Password/gift card template logo {% endcomment %}
-<h1 class="logo">
-  {% if section.settings.logo != blank %}
-  {% capture img_size %}{{ section.settings.logo_width | times: 2 }}x{% endcapture %}
-  <img src="{{ section.settings.logo | img_url: img_size }}" alt="{{ section.settings.logo.alt | escape }}" />
-  {% else %}
-  {{ shop.name }}
-  {% endif %}
-</h1>
+<div class="container">
+  <h1 class="logo">
+    {% if section.settings.logo != blank %}
+    {% capture img_size %}{{ section.settings.logo_width | times: 2 }}x{% endcapture %}
+    <img src="{{ section.settings.logo | img_url: img_size }}" alt="{{ section.settings.logo.alt | escape }}" style="width: {{ section.settings.logo_width }}px;" />
+    {% else %}
+    {{ shop.name }}
+    {% endif %}
+  </h1>
+</div>
 
 {% else %}
 
 <div class="page-header layout-{{ section.settings.header_layout }}" data-section-type="header">
   <div id="toolbar" class="toolbar cf">
-    <span class="mobile-toolbar">
-      <a class="toggle-mob-nav" href="#">{% include 'svg-nav' %}</a>
-      <a class="compact-logo" href="{{ shop.url }}">
-        {% if section.settings.logo != blank %}
-        {% if section.settings.use_mobile_logo %}
-        {{ section.settings.compact_logo | img_url: '200x' | img_tag: section.settings.compact_logo.alt }}
+    {% if section.settings.banner_enabled %}
+      <div
+        class="pencil-banner"
+        style="
+          --color: {{ section.settings.banner_text_color }};
+          --background-color: {{ section.settings.banner_background_color }};
+        "      
+        data-pencil-banner
+      >
+        <div class="pencil-banner__content">
+          <div class="pencil-banner__content-desktop">{{ section.settings.banner_content }}</div>
+          <div class="pencil-banner__content-mobile">{{ section.settings.banner_mobile_content | default: section.settings.banner_content }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="container cf" style="position: relative">
+      <span class="mobile-toolbar">
+        <a class="toggle-mob-nav" href="#">{% include 'svg-nav' %}</a>
+        <a class="compact-logo" href="{{ shop.url }}">
+          {% if section.settings.logo != blank %}
+          {% if section.settings.use_mobile_logo %}
+          {{ section.settings.compact_logo | img_url: '200x' | img_tag: section.settings.compact_logo.alt }}
+          {% else %}
+          {{ section.settings.logo | img_url: '200x' | img_tag: section.settings.logo.alt }}
+          {% endif %}
+          {% else %}
+          {{ shop.name }}
+          {% endif %}
+        </a>
+      </span>
+
+      {% unless section.settings.header_layout == 'mobile' %}
+      <span class="toolbar-links">
+        {% if shop.customer_accounts_enabled %}
+        {% if customer  %}
+        <a href="/account">{{ 'layout.customer.your_account' | t }}</a>
+        <span class="divider">/</span> {{ 'layout.customer.logout' | t | customer_logout_link }}
         {% else %}
-        {{ section.settings.logo | img_url: '200x' | img_tag: section.settings.logo.alt }}
+        {{ 'layout.customer.login' | t | customer_login_link }}
+        {% if shop.customer_accounts_optional %}
+        <span class="divider">/</span> {{ 'layout.customer.create_account' | t | customer_register_link }}
         {% endif %}
-        {% else %}
-        {{ shop.name }}
         {% endif %}
-      </a>
-    </span>
+        {% if section.settings.show_header_search %}<span class="divider">/</span>{% endif %}
+        {% endif %}
+        {% if section.settings.show_header_search %}
+        <form class="search-form" action="/search" method="get">
+          <input type="hidden" name="type" value="{{ settings.search_type }}" />
+          <button>{% include 'svg-search' %}</button>
+          <input type="text" name="q" placeholder="{{ 'layout.header.search' | t }}"/>
+        </form>
+        {% endif %}
+      </span>
+      {% endunless %}
 
-    {% unless section.settings.header_layout == 'mobile' %}
-    <span class="toolbar-links">
-      {% if shop.customer_accounts_enabled %}
-      {% if customer  %}
-      <a href="/account">{{ 'layout.customer.your_account' | t }}</a>
-      <span class="divider">/</span> {{ 'layout.customer.logout' | t | customer_logout_link }}
-      {% else %}
-      {{ 'layout.customer.login' | t | customer_login_link }}
-      {% if shop.customer_accounts_optional %}
-      <span class="divider">/</span> {{ 'layout.customer.create_account' | t | customer_register_link }}
-      {% endif %}
-      {% endif %}
-      {% if section.settings.show_header_search %}<span class="divider">/</span>{% endif %}
-      {% endif %}
-      {% if section.settings.show_header_search %}
-      <form class="search-form" action="/search" method="get">
-        <input type="hidden" name="type" value="{{ settings.search_type }}" />
-        <button>{% include 'svg-search' %}</button>
-        <input type="text" name="q" placeholder="{{ 'layout.header.search' | t }}"/>
-      </form>
-      {% endif %}
-    </span>
-    {% endunless %}
+      <span class="toolbar-cart">
+        <a class="current-cart {% if template != 'cart' %}toggle-cart-summary{% endif %}" href="/cart">
+          <span class="beside-svg">{{ cart.item_count }} / {{ cart.total_price | money }}</span>
+          {% include 'svg-cart' %}
+        </a>
+      </span>
 
-    <span class="toolbar-cart">
-      <a class="current-cart {% if template != 'cart' %}toggle-cart-summary{% endif %}" href="/cart">
-        <span class="beside-svg">{{ cart.item_count }} / {{ cart.total_price | money }}</span>
-        {% include 'svg-cart' %}
-      </a>
-    </span>
-
-    {% unless section.settings.header_layout == 'mobile' %}
-    <span class="toolbar-social">
-      
-    </span>
-    {% endunless %}
+      {% unless section.settings.header_layout == 'mobile' %}
+      <span class="toolbar-social">
+        
+      </span>
+      {% endunless %}
+    </div>
   </div>
 
   <div class="logo-nav">
@@ -100,11 +112,57 @@
 
 {% endif %}
 
+{% if section.settings.logo != blank %}
+  <style type="text/css">
+    .logo img {
+      width: {{ section.settings.logo_width }}px;
+    }
+  </style>
+{% endif %}
+
 
 {% schema %}
   {
     "name": "Header",
     "settings": [
+      {
+        "type": "header",
+        "content": "Pencil Banner"
+      },      
+      {
+        "id": "banner_enabled",
+        "type": "checkbox",
+        "label": "Show Pencil Banner",
+        "default": true
+      },
+      {
+        "id": "banner_content",
+        "type": "richtext", 
+        "label": "Desktop Text",
+        "default": "<p>Default Banner Text</p>"
+      },
+      {
+        "id": "banner_mobile_content",
+        "type": "richtext", 
+        "label": "Mobile Text",
+        "info": "Alternate text for small screens, will fall back to regular content if left blank"
+      },
+      {
+        "type": "color",
+        "id": "banner_text_color",
+        "label": "Text Color",
+        "default": "#FFF"
+      },
+      {
+        "type": "color",
+        "id": "banner_background_color",
+        "label": "Background Color",
+        "default": "#000"
+      },
+      {
+        "type": "header",
+        "content": "Menu"
+      },          
       {
         "type": "link_list",
         "id": "menu_linklist",
