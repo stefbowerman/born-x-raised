@@ -223,11 +223,9 @@
       {% else %}
 
       {% unless section.settings.description_location == 'under' %}
-      <div class="product-description rte" itemprop="description">{{ product.description }}</div>
-      
-      {% render 'product-size-guide', page: section.settings.size_guide_page, blocks: section.blocks %}
-
-      <div id="shopify-product-reviews" data-id="{{product.id}}">{{ product.metafields.spr.reviews }}</div>
+        {% render 'product-size-guide', page: section.settings.size_guide_page, blocks: section.blocks %}
+        <div class="product-description rte" itemprop="description">{{ product.description }}</div>
+        <div id="shopify-product-reviews" data-id="{{product.id}}">{{ product.metafields.spr.reviews }}</div>
       {% endunless %}
       
       {% endif %}
@@ -238,11 +236,9 @@
   {% unless template contains 'lightbox' %}
   
   {% if section.settings.description_location == 'under' %}
-  <div class="product-description rte spaced-row reading-column" itemprop="description">{{ product.description | replace: 'fullwidth"', '" data-fullwidth="true"' }}</div>
-  
-  {% render 'product-size-guide', page: section.settings.size_guide_page, blocks: section.blocks %}
-
-  <div id="shopify-product-reviews" data-id="{{product.id}}">{{ product.metafields.spr.reviews }}</div>
+    {% render 'product-size-guide', page: section.settings.size_guide_page, blocks: section.blocks %}
+    <div class="product-description rte spaced-row reading-column" itemprop="description">{{ product.description | replace: 'fullwidth"', '" data-fullwidth="true"' }}</div>
+    <div id="shopify-product-reviews" data-id="{{product.id}}">{{ product.metafields.spr.reviews }}</div>
   {% endif %}
   
   
