@@ -70,7 +70,7 @@
 
   {% if has_size_option_and_size_guide_source or size_guide_source_is_metafield %}
     {% unless hide_size_guide_via_tag %}
-      <a href="#size-guide-lightbox-{{ product.id }}" style="text-decoration: underline" data-size-guide>Size Guide</a>
+      <a href="#size-guide-lightbox-{{ product.id }}" style="font-weight: bold; border-bottom: 2px solid;" data-size-guide>Size Guide</a>
 
       <div style="display: none;">
         <div id="size-guide-lightbox-{{ product.id }}" class="size-guide-lightbox">
