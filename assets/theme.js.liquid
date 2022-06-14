@@ -1,3 +1,7 @@
+if (!window.luxon) {
+  console.warn('luxon.js required for certain theme functionality')
+}
+
 window.theme = window.theme || {};
 
 theme.icons = {
@@ -7,6 +11,55 @@ theme.icons = {
   chevronLeft: '<svg fill="#000000" viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M 14.51,6.51 14,6 8,12 14,18 14.51,17.49 9.03,12 Z"></path></svg>',
   chevronRight: '<svg fill="#000000" viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M 10,6 9.49,6.51 14.97,12 9.49,17.49 10,18 16,12 Z"></path></svg>'
 };
+
+theme.helpers = {
+  pad: function(n, width, z) {
+    z = z || '0';
+    n = n + '';
+    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+  }
+}
+
+theme.CountdownClock = (function() {
+
+  function CountdownClock(el) {
+    this.$el = $(el)
+    this.endTime = luxon.DateTime.fromISO(this.$el.data('end-time'), { zone: 'America/Los_Angeles' })
+
+    this.tick();
+    this.interval = setInterval(this.tick.bind(this), 1e3);
+  }
+
+  CountdownClock.prototype = {
+    destroy() {
+      clearInterval(this.interval)
+    },
+    tick: function() {
+      var nowTime = luxon.DateTime.now()
+      var diff = this.endTime.diff(nowTime, ['seconds', 'minutes', 'hours', 'milliseconds'])
+  
+      if (nowTime >= this.endTime) {
+        clearInterval(this.interval)
+
+        diff = {
+          hours: 0,
+          minutes: 0,
+          seconds: 0
+        }
+      }
+
+      this.$el.text([
+        diff.hours,
+        diff.minutes,
+        diff.seconds
+      ].map(function(num) {
+        return theme.helpers.pad(num, 2, '0');
+      }).join(':'))
+    }    
+  }
+
+  return CountdownClock;
+}());
 
 theme.Sections = new function(){
   var _ = this;
@@ -548,12 +601,22 @@ theme.HeaderSection = new function(){
         $clone.remove();
       }).trigger('resizenav');
     }
+
+    if ($('[data-countdown]', target).length) {
+      var $countdown = $('[data-countdown]', target)
+      
+      this.countdownClock = new theme.CountdownClock($countdown)
+    }
   }
   
   this.onSectionUnload = function(target){
     $('.main-nav', this).off('click mouseenter loadimg');
     $('body #mobile-nav').remove();
     $(window).off('.resizeNavFont');
+
+    if (this.countdownClock) {
+      this.countdownClock.destroy()
+    }
   }
 }
 
