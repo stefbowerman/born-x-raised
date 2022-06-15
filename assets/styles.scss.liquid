@@ -3793,10 +3793,69 @@ html.template-password {
   .countdown-clock {
     margin: 0 7px;
     color: #ff3232;
+    font-size: 120%;
   }
 }
 
 .countdown-clock {
   font-family: 'DS-Digital', monospace;
-  font-size: 120%;
+  
+}
+
+.countdown-scoreboard {
+  background: black;
+  color: #ff4949;
+  display: inline-flex;
+  justify-content: space-between;
+  padding: 17px 10px 11px;
+  font-size: 40px;
+  line-height: 1;
+  gap: 20px;
+}
+
+.countdown-group {
+  display: flex;
+  gap: 10px;
+}
+
+.countdown-column {
+  & + & .countdown-column__value:before {
+    content: ':';
+    position: absolute;
+    left: 0;
+    transform: translateX(-0.2em);
+  }
+}
+
+.countdown-column__header {
+  color: white;
+  font-size: 12px;
+  font-family: proxima-nova,sans-serif,sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  transform: scaleY(1.3) scaleX(0.8);
+  margin-bottom: 6px;
+}
+
+.countdown-column__value {
+  position: relative;
+  padding: 0 4px;
+}
+
+@media (min-width: 767px) {
+  .countdown-scoreboard {
+    gap: 50px;
+    font-size: 85px;
+    font-size: clamp(45px, 8vw, 85px);
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+
+  .countdown-group {
+    gap: 20px;
+  }
+
+  .countdown-column__header {
+    font-size: 24%;
+  }
 }

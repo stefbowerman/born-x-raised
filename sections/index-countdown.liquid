@@ -1,0 +1,82 @@
+<section class="border-top section page-section" data-section-type="countdown">
+  <div class="container align-centre" style="width: 85% !important;">
+    <h2 class="section-heading">
+      <span style="font-size: {{ section.settings.title_font_size | append: '%' }}; line-height: 1.2">{{ section.settings.title | escape }}
+    </h2>
+
+    {% if section.settings.countdown_endtime != blank %}
+      <div
+        class="countdown-clock"
+        data-countdown
+        data-end-time="{{ section.settings.countdown_endtime }}"
+        data-expanded-style="true"
+      >
+        <div class="countdown-scoreboard">
+          <div class="countdown-group">
+            <div class="countdown-column">
+              <div class="countdown-column__header">Days</div>
+              <div class="countdown-column__value" data-days></div>
+            </div>
+          </div>
+
+          <div class="countdown-group">
+            <div class="countdown-column">
+              <div class="countdown-column__header">Hours</div>
+              <div class="countdown-column__value" data-hours></div>
+            </div>
+
+            <div class="countdown-column">
+              <div class="countdown-column__header">Minutes</div>
+              <div class="countdown-column__value" data-minutes></div>
+            </div>
+
+            <div class="countdown-column">
+              <div class="countdown-column__header">Seconds</div>
+              <div class="countdown-column__value" data-seconds></div>
+            </div>                        
+          </div>    
+        </div>
+      
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+
+{% schema %}
+  {
+    "name": "Countdown",
+    "settings": [
+      {
+        "type": "textarea",
+        "id": "title",
+        "label": "Heading",
+	  	  "default": "Rich text"
+      },
+      {
+        "type": "range",
+        "id": "title_font_size",
+        "min": 50,
+        "max": 200,
+        "step": 10,
+        "unit": "%",
+        "label": "Heading Font size",
+        "default": 100
+      },
+      {
+        "id": "countdown_endtime",
+        "type": "text",
+        "label": "Countdown End Time",
+        "default": "2022-10-17T07:00:00",
+        "info": "ISO 8601 Format.  Assumes America/Los_Angeles timezone"
+      }      
+  	],
+    "presets": [
+      {
+        "name": "Countdown",
+        "category": "Content",
+        "settings": {}
+      }
+    ]
+  }
+{% endschema %}

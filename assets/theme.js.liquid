@@ -24,7 +24,13 @@ theme.CountdownClock = (function() {
 
   function CountdownClock(el) {
     this.$el = $(el)
+    this.$days = $('[data-days]', this.$el)
+    this.$hours = $('[data-hours]', this.$el)
+    this.$minutes = $('[data-minutes]', this.$el)
+    this.$seconds = $('[data-seconds]', this.$el)
+
     this.endTime = luxon.DateTime.fromISO(this.$el.data('end-time'), { zone: 'America/Los_Angeles' })
+    this.expandedStyle = !!this.$el.data('expanded-style')
 
     this.tick();
     this.interval = setInterval(this.tick.bind(this), 1e3);
@@ -36,25 +42,48 @@ theme.CountdownClock = (function() {
     },
     tick: function() {
       var nowTime = luxon.DateTime.now()
-      var diff = this.endTime.diff(nowTime, ['seconds', 'minutes', 'hours', 'milliseconds'])
+      
   
       if (nowTime >= this.endTime) {
         clearInterval(this.interval)
-
-        diff = {
-          hours: 0,
-          minutes: 0,
-          seconds: 0
-        }
       }
 
-      this.$el.text([
-        diff.hours,
-        diff.minutes,
-        diff.seconds
-      ].map(function(num) {
-        return theme.helpers.pad(num, 2, '0');
-      }).join(':'))
+      if (this.expandedStyle) {
+        var diff = this.endTime.diff(nowTime, ['days', 'seconds', 'minutes', 'hours', 'milliseconds'])
+  
+        if (nowTime >= this.endTime) {
+          diff = {
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+          }
+        }     
+
+        this.$days.text(theme.helpers.pad(diff.days, 3, '0'))
+        this.$hours.text(theme.helpers.pad(diff.hours, 2, '0'))
+        this.$minutes.text(theme.helpers.pad(diff.minutes, 2, '0'))
+        this.$seconds.text(theme.helpers.pad(diff.seconds, 2, '0'))
+      }
+      else {
+        var diff = this.endTime.diff(nowTime, ['seconds', 'minutes', 'hours', 'milliseconds'])
+
+        if (nowTime >= this.endTime) {
+          diff = {
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+          }
+        }
+
+        this.$el.text([
+          diff.hours,
+          diff.minutes,
+          diff.seconds
+        ].map(function(num) {
+          return theme.helpers.pad(num, 2, '0');
+        }).join(':'))
+      }
     }    
   }
 
@@ -797,6 +826,22 @@ theme.FeaturedBlogSection = new function(){
   }
   
   this.onSectionUnload = function(target){
+  }
+}
+
+theme.CountdownSection = new function(){
+  this.onSectionLoad = function(target) {
+    if ($('[data-countdown]', target).length) {
+      var $countdown = $('[data-countdown]', target)
+      
+      this.countdownClock = new theme.CountdownClock($countdown)
+    }
+  }
+
+  this.onSectionUnload = function() {
+    if (this.countdownClock) {
+      this.countdownClock.destroy()
+    }
   }
 }
 
@@ -1781,6 +1826,7 @@ $(function($){
   theme.Sections.register('collection-listing', theme.CollectionListingSection);
   theme.Sections.register('featured-collection', theme.FeaturedCollectionSection);
   theme.Sections.register('search-template', theme.SearchTemplateSection);
+  theme.Sections.register('countdown', theme.CountdownSection);
   
 });
 
