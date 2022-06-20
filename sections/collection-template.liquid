@@ -85,6 +85,7 @@
       </div>
 
       <div id="collection" class="{% if section.settings.sidebar_show %}show-sidebar{% endif %}">
+      {% comment %} 
         {% if section.settings.show_collection_tags and section.settings.collection_tags == 'boxes' %}
         {% assign has_tags = false %}
         {% capture tags_html %}
@@ -101,11 +102,12 @@
         </ul>
         {% endcapture %}{% if has_tags %}{{ tags_html }}{% endif %} 
         {% endif %}
+      {% endcomment %}
 
         <div class="inline-row">
           <div class="inline-item right last">
             
-
+            {% comment %}
             {% if section.settings.show_collection_tags and section.settings.collection_tags == 'dropdown' %}
             {% if collection.url.size == 0 %}
             {% assign collection_url = '/collections/all' %}
@@ -128,6 +130,7 @@
             </span>
             {% endcapture %}{% if has_tags %}{{ tags_html }}{% endif %} 
             {% endif %}
+            {% endcomment %}
 
             {% if section.settings.collection_sort and collection.products_count > 0 %}
             <span class="filter">
@@ -303,6 +306,7 @@
         "type": "checkbox",
         "id": "show_collection_tags",
         "label": "Show product tag filter",
+        "info": "DEPRECATED - Doesn't do anything",
         "default": false
       },
       {
@@ -319,7 +323,8 @@
             "label": "Dropdown"
           }
         ],
-        "default": "dropdown"
+        "default": "dropdown",
+        "info": "DEPRECATED - Doesn't do anything"
       },
       {
         "type": "checkbox",
