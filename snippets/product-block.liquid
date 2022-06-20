@@ -1,3 +1,13 @@
+{% comment %}
+    {% render 'product-block', 
+               apply_filter_tags: { boolean } - default: false
+    %}  
+{% endcomment %}
+
+{% if apply_filter_tags == blank %}
+  {% assign apply_filter_tags = false %}
+{% endif %}
+
 {% assign show_single_variant_details = true %}
 
 {% capture url %}{% if collection %}{{ product.url | within: collection }}{% else %}{{ product.url }}{% endif %}{% endcapture %}
@@ -12,7 +22,39 @@
 {% endif %}
 {% endcomment %}
 
-<div class="product-block {% if settings.label_soldout_show and product.available == false %}sold-out {% endif %}{{ product-block | default: 'flex column' }} max-cols-{{ max_cols }} min-cols-2">
+{% assign tag_string = '' %}
+
+{% if apply_filter_tags %}
+  {% comment %}
+    Logic here to loop through all the variants to pull size tag info and color variant stuff
+    Because this snippet is rendered on collection pages that can have up to ~800 products, try to keep the logic to *one* nested loop
+  {% endcomment %}
+  {% for option in product.options_with_values %}
+    {% assign option_name_downcase = option.name | downcase %}
+    {% assign option_position = 'option' | append: option.position %}  
+    
+    {% for value in option.values %}
+      {% for variant in product.variants %}
+        {% if variant[option_position] == value %}
+          {% if option_name_downcase == "size" %}
+            {% if variant.available %}
+              {% assign size_tag  = 'size:' | append: value | handle %} {% comment %} turns value = "Small" into "size:Small" => "size-small" {% endcomment %}
+              {% assign tag_string = tag_string | append: size_tag | append: ' ' %}      
+            {% endif %}
+          {% endif %}          
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
+{% endif %}
+
+{% comment %} Clean the tag string before we pass it into the HTML {% endcomment %}
+{% assign tag_string = tag_string | split: ' ' | uniq | join: ' ' %}
+
+<div
+  class="product-block {% if settings.label_soldout_show and product.available == false %}sold-out {% endif %}{{ product-block | default: 'flex column' }} max-cols-{{ max_cols }} min-cols-2"
+  {% if apply_filter_tags and tag_string != blank %}data-tags="{{ tag_string }}"{% endif %}
+>
   <div class="image">
     <div class="inner">
       <a href="{{ url }}">

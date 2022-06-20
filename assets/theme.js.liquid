@@ -12,13 +12,287 @@ theme.icons = {
   chevronRight: '<svg fill="#000000" viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M 10,6 9.49,6.51 14.97,12 9.49,17.49 10,18 16,12 Z"></path></svg>'
 };
 
-theme.helpers = {
+theme.utils = {
+  /**
+   * Constructs an object of key / value pairs out of the parameters of the query string
+   *
+   * @return {Object}
+   */
+   getQueryParams: function() {
+    var queryString = location.search && location.search.substr(1) || '';
+    var queryParams = {};
+
+    queryString
+      .split('&')
+      .filter(function (element) {
+        return element.length;
+      })
+      .forEach(function (paramValue) {
+        var splitted = paramValue.split('=');
+
+        if (splitted.length > 1) {
+          queryParams[splitted[0]] = splitted[1];
+        } else {
+          queryParams[splitted[0]] = true;
+        }
+      });
+
+    return queryParams;
+  },
+
+  /**
+   * Constructs a version of the current URL with the passed in key value pair as part of the query string
+   *
+   * @param {String} key
+   * @param {String} value
+   * @param {String} uri - optional, defaults to window.location.href
+   * @return {String}
+   */
+  getUrlWithUpdatedQueryStringParameter: function(key, value, uri) {
+    var uri = uri != undefined ? uri : window.location.href;
+    
+    // remove the hash part before operating on the uri    
+    var i = uri.indexOf('#');
+    var hash = i === -1 ? ''  : uri.substr(i);
+          uri = i === -1 ? uri : uri.substr(0, i);
+
+    var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+    var separator = uri.indexOf('?') !== -1 ? "&" : "?";
+    if (uri.match(re)) {
+        uri = uri.replace(re, '$1' + key + "=" + value + '$2');
+    } else {
+        uri = uri + separator + key + "=" + value;
+    }
+    return uri + hash;  // finally append the hash as well
+  },
+
+  /**
+   * Constructs a version of the current URL with the passed in parameter key and associated value removed
+   *
+   * @param {String} key
+   * @return {String}
+   */
+  getUrlWithRemovedQueryStringParameter: function(parameterKeyToRemove, uri) {
+    var uri = uri != undefined ? uri : window.location.href,
+        rtn = uri.split("?")[0],
+        param,
+        params_arr = [],
+        queryString = (uri.indexOf("?") !== -1) ? uri.split("?")[1] : "";
+
+    if (queryString !== "") {
+        params_arr = queryString.split("&");
+        for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+            param = params_arr[i].split("=")[0];
+            if (param === parameterKeyToRemove) {
+                params_arr.splice(i, 1);
+            }
+        }
+          if (params_arr.length > 0) { 
+          rtn = rtn + "?" + params_arr.join("&");
+        }
+    }
+
+    return rtn;
+  },
+
   pad: function(n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
   }
 }
+
+theme.TagFilterController = (function() {
+  /**
+   * TagFilterController constructor.
+   * - Manages the tag filters applied to the collection page.
+   * - All modifications to / queries for filters should go through this guy
+   *
+   */
+   function TagFilterController() {
+
+    this.name = 'tagFilterController';
+    this.tagFilters = [];
+
+    /**
+     * Constructs an object of tag filter data to be consumed by other functions inside this controller
+     *
+     * @return {Object} obj
+     * @return {Array}  obj.types
+     * @return {Array}  obj.activeTypes
+     * @return {Array}  obj.values
+     * @return {Array}  obj.activeValues
+     * @return {Object} obj.filtersForType
+     */
+    this._getTagFilterData = function() {
+      var data = {
+        types: [],
+        activeTypes: [],
+        actives: [],
+        values: [],
+        activeValues: [],
+        filtersForType: {}
+      };
+
+      for (var i = this.tagFilters.length - 1; i >= 0; i--) {
+        var tf   = this.tagFilters[i];
+        var val  = tf.value;
+        var type = tf.type;
+        
+        // Update data.types
+        if(data.types.indexOf(type) == -1) {
+          data.types.push(type);
+        }
+        
+        // Update data.values
+        if(data.values.indexOf(val) == -1) {
+          data.values.push(val);
+        }
+        
+        // Update data.filtersForType
+        if(!data.filtersForType.hasOwnProperty(type)) {
+          data.filtersForType[type] = [];
+        }
+
+        data.filtersForType[type].push(tf);
+
+        // Update data.actives / data.activeTypes / data.activeValues
+        if(tf.active) {
+          data.actives.push(tf);
+          if(data.activeTypes.indexOf(type) == -1) {
+            data.activeTypes.push(type);
+          }
+          if(data.activeValues.indexOf(val) == -1) {
+            data.activeValues.push(val);
+          }
+        }
+
+      }
+
+      return data;
+    },
+
+    /**
+     * Register an instance of a TagFilter
+     *
+     * @param {TagFilter} tagFilter
+     */
+    this.registerTagFilter = function(tagFilter) {    
+      this.tagFilters.push(tagFilter);
+    };
+
+    this.activateTagFilterByValue = function(val) {
+      // console.log('['+this.name+'] ActivateTagFilterByValue - ' + val);
+      var tf = this.getTagFilterByValue(val);
+
+      if(tf) {
+        tf.activate();
+      }
+    };
+
+    this.deactivateTagFilterByValue = function(val) {
+      // console.log('['+this.name+'] DeactivateTagFilterByValue - ' + val);
+      var tf = this.getTagFilterByValue(val);
+
+      if(tf) {
+        tf.deactivate();
+      }
+    };
+
+    this.toggleFilterByValue = function(val){
+      var tf = this.getTagFilterByValue(val);
+      if(tf) {
+        tf.active ? tf.deactivate() : tf.activate();
+      }
+    };
+
+    this.deactivateAllFilters = function() {
+      $.each(this.getActiveTagFilters(), function(i, tf){
+        tf.deactivate();
+      });
+    }
+
+    this.getTagFilterTypes = function() {
+      return this._getTagFilterData().types;
+    };
+
+    this.getActiveTagFilterTypes = function() {
+      return this._getTagFilterData().activeTypes;
+    };
+
+    this.getActiveTagFilterValues = function() {
+      return this._getTagFilterData().activeValues;
+    };
+
+    this.getTagFiltersForType = function(type) {
+      var filterData = this._getTagFilterData();
+
+      return filterData.filtersForType.hasOwnProperty(type) ? filterData.filtersForType[type] : [];
+    };
+
+    this.getActiveTagFilters = function() {
+     return this._getTagFilterData().actives;
+    };
+
+    this.getActiveTagFiltersForType = function(type) {
+      var tfs = this.getTagFiltersForType(type);
+
+      return tfs.filter(function(f) { return f.active; });
+    };
+
+    this.getTagFilterByValue = function(val) {
+      for (var i = this.tagFilters.length - 1; i >= 0; i--) {
+        var tf = this.tagFilters[i];
+        if(tf.value == val) {
+          return tf;
+        }
+      }
+    };
+
+    this.getTagFilters = function() {
+      return this.tagFilters;
+    };
+  };
+
+  return TagFilterController;
+}());
+
+theme.TagFilter = (function() {
+  /**
+   * TagFilter constructor.
+   *
+   * @param {String} type - Filter type (ex. "color", "size")
+   * @param {String} value - Filter Value (ex. "color-blue", "size-small")
+   * @param {String} title - Display title (ex. "Blue", "Extra Large")
+   * @param {Bool} active - You can specify that the filter is active when you construct it
+   */
+   function TagFilter(type, value, title, active) {
+    if(!type || !value) {
+      return;
+    }
+
+    this.type   = type;
+    this.value  = value;
+    this.title  = title;
+    this.active = active || false;
+
+    return this;
+  };
+
+  TagFilter.prototype = {
+    activate: function() {
+      this.active = true;
+      return this;
+    },
+
+    deactivate: function() {
+      this.active = false;
+      return this;
+    }
+  };
+
+  return TagFilter;
+}());
 
 theme.CountdownClock = (function() {
 
@@ -60,10 +334,10 @@ theme.CountdownClock = (function() {
           }
         }     
 
-        this.$days.text(theme.helpers.pad(diff.days, 3, '0'))
-        this.$hours.text(theme.helpers.pad(diff.hours, 2, '0'))
-        this.$minutes.text(theme.helpers.pad(diff.minutes, 2, '0'))
-        this.$seconds.text(theme.helpers.pad(diff.seconds, 2, '0'))
+        this.$days.text(theme.utils.pad(diff.days, 3, '0'))
+        this.$hours.text(theme.utils.pad(diff.hours, 2, '0'))
+        this.$minutes.text(theme.utils.pad(diff.minutes, 2, '0'))
+        this.$seconds.text(theme.utils.pad(diff.seconds, 2, '0'))
       }
       else {
         var diff = this.endTime.diff(nowTime, ['seconds', 'minutes', 'hours', 'milliseconds'])
@@ -81,7 +355,7 @@ theme.CountdownClock = (function() {
           diff.minutes,
           diff.seconds
         ].map(function(num) {
-          return theme.helpers.pad(num, 2, '0');
+          return theme.utils.pad(num, 2, '0');
         }).join(':'))
       }
     }    
@@ -730,10 +1004,32 @@ theme.BlogTemplateSection = new function(){
     $(window).off('.checktagswidth .blogTemplateMasonry');
     $(document).off('.checktagswidth');
   }
-}
+};
 
 theme.CollectionTemplateSection = new function(){
+  var selectors = {
+    productList: '.product-list',
+    productCard: '.product-block',
+    filterTagsRow: '.collection-filter-tags__row',
+    filterTags: '[data-filter-type][data-filter-tags]',
+    filterControls: '[data-filter-controls]',
+    filterControlsToggle: '[data-filter-controls-toggle]',
+    collectionFilterEmpty: '[data-collection-filter-empty]',
+    clearFilters: '[data-clear-filters]'
+  };
+
+  var classes = {
+    filterActive: 'is-active',
+    filterControlsOpen: 'is-open',
+    filterConTrolsToggleHasActiveFilters: 'has-active-filters',
+    clearFiltersVisible: 'is-visible'
+  };
+
   this.onSectionLoad = function(target){
+    var self = this;
+    
+    this.$container = $(target);
+
     // Infinite-scroll
     $('.product-list.use-infinite-scroll', target).each(function(){
       var $cont = $(this);
@@ -783,6 +1079,298 @@ theme.CollectionTemplateSection = new function(){
     
     /// Grid item heights
     $(window).trigger('normheights');
+
+    /// Filtering
+    this.queryStringFilterParamKey = 'filters';
+    this.$productList = $(selectors.productList, target);
+    this.$productCards = $(selectors.productCard, target);
+    this.$filterTags = $(selectors.filterTags, target);
+    this.$filterTagsRows = $(selectors.filterTagsRow, target);
+    this.$filterControls = $(selectors.filterControls, target);
+    this.$filterControlsToggle = $(selectors.filterControlsToggle, target);
+    this.$clearFilters = $(selectors.clearFilters, target);
+    this.$collectionFilterEmpty = $(selectors.collectionFilterEmpty, target);
+
+    this.tagFilterController = new theme.TagFilterController();
+
+    function tagSortNumberReducer(prev, current) {
+      current = $.trim(current);
+
+      var currentVal = parseFloat(current);
+      var currentSplit = current.split('/')
+
+      if (currentSplit.length === 2) {
+        currentVal = currentSplit[0] / currentSplit[1]
+      }
+
+      return prev + currentVal
+    }
+
+    // Sort the tag filters since it's much easier to do in JS than in liquid
+    this.$filterTagsRows.each(function() {
+      var $row = $(this);
+      var $filterTags = $row.find(selectors.filterTags);
+
+      $filterTags.detach();
+
+      $filterTags.sort(function(a, b) {
+        var aVal = a.innerText.split(' ') // '7 1/2' -> ['7', '1/2']
+        var bVal = b.innerText.split(' ') // '7 1/2' -> ['7', '1/2']
+
+        // Reduce tag value to a number so we can order numeric sizes correctly
+        var an = aVal.reduce(tagSortNumberReducer, 0)
+        var bn = bVal.reduce(tagSortNumberReducer, 0)
+
+        return an > bn ? 1 : (an < bn ? -1 : 0);
+      });
+
+      $row.append($filterTags);
+    });    
+
+    // Register all the tag filters
+    this.$filterTags.each(function() {
+      var $ft   = $(this);
+      var type  = $ft.data('filter-type');
+      var title = $ft.attr('title') && $ft.attr('title').length ? $ft.attr('title') : $ft.text();
+      var tags  = $ft.data('filter-tags').split(" "); // Handle single filterElements that map to multiple tags (space separated)
+
+      $.each(tags, function(i, value) {
+        self.tagFilterController.registerTagFilter(new theme.TagFilter(type, value, title));
+      });
+    });
+
+    // When we load the page, check for filter tag parameters in the URL
+    var queryParams = theme.utils.getQueryParams();
+    var queryParamFilters = [];
+
+    if(queryParams.hasOwnProperty(this.queryStringFilterParamKey) && queryParams[ this.queryStringFilterParamKey ].length) {
+      
+      queryParamFilters = decodeURIComponent(queryParams[this.queryStringFilterParamKey]).split('+');
+
+      $.each(queryParamFilters, function(i, param) {
+        self.tagFilterController.activateTagFilterByValue(param);
+      });
+    }    
+
+    // evt handlers
+    this.$filterTags.on('click', this.onFilterTagsClick.bind(this));
+    this.$clearFilters.on('click', this.onClearFiltersClick.bind(this));
+    this.$filterControlsToggle.on('click', this.onFilterControlsToggleClick.bind(this));    
+
+    if(this.tagFilterController.getActiveTagFilters().length) {
+      this.$productList.hide();
+      this.openFilters();
+      this.applyTagFilters();
+    }    
+  }
+
+  /**
+   * Returns a jQuery set of product card elements that satisfy the currently applied filtering
+   * If there are no filters, we return the entire set of cards
+   *
+   * @return {jQuery}
+   */
+  this.getProductCardsThatPassAppliedFilters = function() {
+    var self = this;
+    // Need to create *new* copies of the product card set
+    var $productCardSetFilterOut = $(selectors.productCard, this.$container); // Start with all the cards, and filter out the ones that pass, leaving the ones that need to be hidden
+    var activeFilterTypes        = this.tagFilterController.getActiveTagFilterTypes();
+
+    // We don't have active filters - show everything, nothing needs to be hidden!
+    if(!activeFilterTypes.length) {
+      return this.$productCards;
+    }
+
+    // We DO have active filters - Loop through each product card
+    this.$productCards.each(function(i){
+      var passesActiveFilters = true; // If this is still "true" at the end of all this logic, then the product passes the applied filters and should be displayed
+      var $productCard       = $(this);
+      var dataTags           = $productCard.data('tags') ? $productCard.data('tags').split(' ') : [];
+      
+      // If there aren't any tags, return early
+      if (!dataTags || dataTags.length === 0) {
+        passesActiveFilters = false;
+        return;
+      }
+
+      // Loop through each active filter
+      for (var i = activeFilterTypes.length - 1; i >= 0; i--) {
+        var activeFilterTypeMatch        = false;
+        var activeTagFiltersForType      = self.tagFilterController.getActiveTagFiltersForType( activeFilterTypes[i] ); // [TagFilter, TagFilter]
+        var activeTagFilterValuesForType = activeTagFiltersForType.map(function(tf){ return tf.value; }); // ["color-blue", "color-red"]
+
+        for (var k = activeTagFilterValuesForType.length - 1; k >= 0; k--) {
+          var activeTagFilterVal = activeTagFilterValuesForType[k]; // "color-blue"
+
+          // as soon as we find a match for this filter type (doesn't matter which value), return it as a match
+          // this is how we satisfy the requirement to match ANY filter for a particular filter type (match "red" OR "blue")
+          if(dataTags.indexOf(activeTagFilterVal) != -1) {
+            activeFilterTypeMatch = true;
+            break;
+          }
+        }
+        
+        // Not a match :(
+        if(activeFilterTypeMatch == false) {
+          passesActiveFilters = false;
+          break;
+        }
+      }
+
+      if(passesActiveFilters) {
+        $productCardSetFilterOut = $productCardSetFilterOut.not($productCard); // remove it from the matched set
+      }
+    });
+
+    return this.$productCards.not($productCardSetFilterOut);
+  }
+
+  this.onFilterControlsToggleClick = function(e) {
+    e.preventDefault();
+
+    if(this.$filterControlsToggle.hasClass(classes.filterControlsOpen)) {
+      this.closeFilters();
+    }
+    else {
+      this.openFilters();
+    }
+  }
+
+  /**
+   * Handle filter tags element click event.
+   * Toggles the state of the filter that was clicked on and then applies the tag filters to the collection
+   *
+   * @param {event} evt
+   */
+  this.onFilterTagsClick = function(e) {
+    e.preventDefault();
+
+    var self          = this;
+    var $filterTagsEl = $(e.currentTarget);
+    var tags          = $filterTagsEl.data('filter-tags').split(" ");
+
+    if(tags.length == 0) return;
+
+    $.each(tags, function(i, t) {
+      self.tagFilterController.toggleFilterByValue(t);
+    });
+
+    self.applyTagFilters();
+  }
+
+  this.onClearFiltersClick = function(e) {
+    e.preventDefault();
+    this.tagFilterController.deactivateAllFilters();
+    this.applyTagFilters();
+  }  
+
+  /**
+   * Updates the filter UI to reflect the state of active / deactive filters
+   *
+   */
+  this.updateFilterUI = function() {
+    var self = this;
+    var filters = this.tagFilterController.getTagFilters();
+    var activeFilters = this.tagFilterController.getActiveTagFilters()
+
+    $.each(filters, function(i, f) {
+      var $filterTag = self.$filterTags.filter(function(){
+        var $currentTag = $(this);
+        var $found;
+
+        $.each($currentTag.data('filter-tags').split(" "), function(i, val){
+          if(val == f.value) {
+            $found = $currentTag;
+            return false;
+          }
+        });
+
+        return $found;
+      });
+
+      $filterTag.toggleClass(classes.filterActive, f.active)
+    });
+
+    this.$clearFilters.toggleClass(classes.clearFiltersVisible, activeFilters.length > 0)
+  }
+
+  /**
+   * Updates the current URL to reflect the state of the applied filters
+   * Appends a query string like ?filter-tags={{ tag1 }}+{{ tag2 }}
+   *
+   */
+  this.updateURL = function() {
+    var queryStringFilterParamValues = this.tagFilterController.getActiveTagFilterValues().join('+');
+    var updatedUrl;
+
+    if(window.history) {
+      if(queryStringFilterParamValues.length) {
+        updatedUrl = theme.utils.getUrlWithUpdatedQueryStringParameter(this.queryStringFilterParamKey, queryStringFilterParamValues);
+      }
+      else {
+        updatedUrl = theme.utils.getUrlWithRemovedQueryStringParameter(this.queryStringFilterParamKey);
+      }
+      
+      window.history.replaceState({ path: updatedUrl }, '', updatedUrl);
+    }
+  }
+
+  this.closeFilters = function() {
+    if(!this.$filterControlsToggle.length || !this.$filterControls.length) return;
+
+    this.$filterControlsToggle.removeClass(classes.filterControlsOpen);
+    
+    this.$filterControls.slideUp(350);
+    this.$filterControls.children().first().css('opacity', 1).fadeTo(250, 0)
+  }
+
+  this.openFilters = function() {
+    if(!this.$filterControlsToggle.length || !this.$filterControls.length) return;
+
+    this.$filterControlsToggle.addClass(classes.filterControlsOpen);
+
+    this.$filterControls.slideDown(200);
+    this.$filterControls.children().first().css('opacity', 0).fadeTo(600, 1);    
+  }
+
+  this.applyTagFilters = function() {
+    var self = this;
+    var cb;
+    var $productCardSetThatPasses = this.getProductCardsThatPassAppliedFilters();
+    var passingProductCardCount   = $productCardSetThatPasses.length;
+
+    // Nothing Matches
+    if (passingProductCardCount == 0) {  
+      cb = function() {
+        self.$collectionFilterEmpty.show();
+        self.$productCards.hide();
+      };
+    }
+    // Everything matches
+    else if (passingProductCardCount === this.$productCards.length) {
+      cb = function() {
+        self.$collectionFilterEmpty.hide();
+        self.$productCards.show();
+      }
+    }
+    // Partial match
+    else {
+      cb = function() {
+        self.$collectionFilterEmpty.hide();
+        self.$productCards.hide();
+        $productCardSetThatPasses.show();
+      }
+    }
+
+    this.$productList.fadeOut(300, function() {
+      cb();
+      this.$productList.fadeIn(400)
+    }.bind(this))
+
+    this.updateFilterUI();
+    this.updateURL();
+
+    return this;
   }
   
   this.onSectionUnload = function(target){

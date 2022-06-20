@@ -1,0 +1,278 @@
+{% comment %}
+ 
+  // COLLECTION FILTERING
+  =====================
+
+  - Size is a special filter, we're utilizing product variant options to determine size availability and then constructing tag-like strings (similar to Style and Color) in order to do the filtering.
+  - This allows us to do size filtering based on actual inventory availability rather than tags which would have to be added or removed manually as products come in and out of stock.
+  - This is only possible because all of our filtering is done with JS by hiding and showing products that match the applied filters.  If we used shopify search / API then we would need to use traditional tags.
+
+    {% render 'collection-filter-bar', 
+               collection: collection,
+               show_labels: { boolean } - default: false
+    %}  
+
+{% endcomment %}
+
+{% if show_labels == blank %}
+  {% assign show_labels = false %}
+{% endif %}
+
+{% if collection != blank %}
+
+  {% comment %}
+
+  // Size + Collection FILTERING
+  =====================
+  - Loop through all the products in the collection
+  - For each, see if one of the option names is "size"
+    - If so, loop through each size value and then through each variant
+      - If a variant in that size is available, append it to the collection_sizes string so we can display it as an available size filter for the collection
+  
+  {% endcomment %}
+
+  {% assign collection_sizes = ' ' %}
+  {% assign collection_vendors = ' ' %}
+
+  {% for product in collection.products %}
+    {% assign product_type_downcase = product.type | downcase %}
+
+    {% for option in product.options_with_values %}
+      {% assign option_name_downcase = option.name | downcase %}
+
+      {% if option_name_downcase == "size" %}
+        {% assign option_position = 'option' | append: option.position %}
+        {% for value in option.values %}
+
+          {% for variant in product.variants %}
+            {% if variant[option_position] == value and variant.available %}
+
+              {% comment %}{% assign size_handle = value | handle %}{% endcomment %}
+              {% assign collection_sizes = collection_sizes | append: value | append: '$$' %}
+
+              {% break %}
+            {% endif %}
+          {% endfor %}
+
+        {% endfor %}
+      {% endif %}
+
+    {% endfor %}
+
+  {% endfor %}
+
+  {% assign collection_sizes = collection_sizes | strip | split: '$$' | uniq %}
+
+  {% assign collection_smlxl_sizes = '' %}
+  {% assign collection_shoe_sizes  = '' %}
+  {% assign collection_hat_sizes = '' %}
+  {% assign collection_misc_sizes  = '' %}
+
+  {% for size in collection_sizes %}
+    {% assign size_imploded = size | downcase | replace: '_', '' | replace: '-', '' %}{% comment %} 'XX-Large' => 'xxlarge' {% endcomment %}
+    {% assign size_number   = size | times: 1 %}
+
+    {% if 'os o-s o/s one size onesize xs xsmall extrasmall xsm s small sm m medium md l large lg xl xlarge extralarge 2xl xxl xxlarge extraextralarge 3xl xxxl xxxlarge extraextraextralarge' contains size_imploded %}
+      {% assign collection_smlxl_sizes = collection_smlxl_sizes | append: size_imploded | append: '$$' %}
+    {% elsif size_imploded contains '.' and size_number >= 5 and size_number <= 14 %}
+      {% assign collection_shoe_sizes = collection_shoe_sizes | append: size_imploded | append: '$$' %}
+    {% elsif size_imploded contains '1/2' or size_number >= 5 and size_number <= 14 %}
+      {% assign collection_hat_sizes = collection_hat_sizes | append: size_imploded | append: '$$' %}    
+    {% else %}
+      {% assign collection_misc_sizes = collection_misc_sizes | append: size_imploded | append: '$$' %}
+    {% endif %}
+  {% endfor %}
+
+  {% assign collection_smlxl_sizes = collection_smlxl_sizes | strip | split: '$$' | uniq %}
+  {% assign collection_hat_sizes   = collection_hat_sizes | strip | split: '$$' | uniq %}
+  {% assign collection_shoe_sizes  = collection_shoe_sizes  | strip | split: '$$' | uniq %}
+  {% assign collection_misc_sizes  = collection_misc_sizes  | strip | split: '$$' | uniq %}
+
+  {% comment %} Filter sorting for XS->XXXL {% endcomment %}
+
+  {% capture smlxl_sizes_html %}
+
+    {% assign filter_onesize_tag  = '' %}
+    {% assign filter_xsmall_tag   = '' %}
+    {% assign filter_small_tag    = '' %}
+    {% assign filter_medium_tag   = '' %}
+    {% assign filter_large_tag    = '' %}
+    {% assign filter_xlarge_tag   = '' %}
+    {% assign filter_xxlarge_tag  = '' %}
+    {% assign filter_xxxlarge_tag = '' %}
+
+    {% if collection_smlxl_sizes.size > 0 %}
+      {% for size in collection_smlxl_sizes %}
+
+        {% assign tag_handle = 'size:' | append: size | handle %}
+        {% comment %}
+          Already imploded
+          {% assign size_imploded = fsize | downcase | replace: '_', '' | replace: '-', '' %}
+        {% endcomment %}
+
+        {% case size %}
+          {% when 'os' or 'o-s' or 'o/s' or 'onesize' %}
+            {% assign filter_onesize_tag = filter_onesize_tag | append: " " | append: tag_handle | strip %}
+          {% when 'xs' or 'xsmall' or 'extrasmall' or 'xsm' %}
+            {% assign filter_xsmall_tag = filter_xsmall_tag   | append: " " | append: tag_handle | strip %}
+          {% when 's' or 'small' or 'sm' %}
+            {% assign filter_small_tag = filter_small_tag     | append: " " | append: tag_handle | strip %}
+          {% when 'm' or 'medium' or 'md' %}
+            {% assign filter_medium_tag = filter_medium_tag   | append: " " | append: tag_handle | strip %}
+          {% when 'l' or 'large' or 'lg' %}
+            {% assign filter_large_tag = filter_large_tag     | append: " " | append: tag_handle | strip %}
+          {% when 'xl' or 'xlarge' or 'extralarge' %}
+            {% assign filter_xlarge_tag = filter_xlarge_tag   | append: " " | append: tag_handle | strip %}
+          {% when 'xxl' or '2xl' or '2xlarge' or 'xxlarge' or 'extraextralarge' %}
+            {% assign filter_xxlarge_tag = filter_xxlarge_tag | append: " " | append: tag_handle | strip %}
+          {% when 'xxxl' or '3xl' or '3xlarge' or 'xxxlarge' or 'extraextraextralarge' %}
+            {% assign filter_xxxlarge_tag = filter_xxxlarge_tag | append: " " | append: tag_handle | strip %}            
+        {% endcase %}
+
+      {% endfor %}
+
+      {% if filter_onesize_tag  != blank or
+            filter_xsmall_tag   != blank or 
+            filter_small_tag    != blank or 
+            filter_medium_tag   != blank or 
+            filter_large_tag    != blank or 
+            filter_xlarge_tag   != blank or 
+            filter_xxlarge_tag  != blank or
+            filter_xxxlarge_tag != blank %}
+
+          {% if filter_onesize_tag != blank %}
+            <a href="#" class="filter-tag" title="One Size" data-filter-type="size" data-filter-tags="{{ filter_onesize_tag }}">O/S</a>
+          {% endif %}                
+
+          {% if filter_xsmall_tag != blank %}
+            <a href="#" class="filter-tag" title="Extra Small" data-filter-type="size" data-filter-tags="{{ filter_xsmall_tag }}">X-Small</a>
+          {% endif %}
+
+          {% if filter_small_tag != blank %}
+            <a href="#" class="filter-tag" title="Small" data-filter-type="size" data-filter-tags="{{ filter_small_tag }}">Small</a>
+          {% endif %}
+
+          {% if filter_medium_tag != blank %}
+            <a href="#" class="filter-tag" title="Medium" data-filter-type="size" data-filter-tags="{{ filter_medium_tag }}">Medium</a>
+          {% endif %}
+
+          {% if filter_large_tag != blank %}
+            <a href="#" class="filter-tag" title="Large" data-filter-type="size" data-filter-tags="{{ filter_large_tag }}">Large</a>
+          {% endif %}
+
+          {% if filter_xlarge_tag != blank %}
+            <a href="#" class="filter-tag" title="X-Large" data-filter-type="size" data-filter-tags="{{ filter_xlarge_tag }}">X-Large</a>
+          {% endif %}
+
+          {% if filter_xxlarge_tag != blank %}
+            <a href="#" class="filter-tag" title="2X-Large" data-filter-type="size" data-filter-tags="{{ filter_xxlarge_tag }}">2X-Large</a>
+          {% endif %}
+
+          {% if filter_xxxlarge_tag != blank %}
+            <a href="#" class="filter-tag" title="3X-Large" data-filter-type="size" data-filter-tags="{{ filter_xxxlarge_tag }}">3X-Large</a>
+          {% endif %}
+
+      {% endif %}      
+    {% endif %}
+  {% endcapture %}
+
+  {% capture hat_sizes_html %}
+    {% if collection_hat_sizes.size > 0 %}
+      {% for size in collection_hat_sizes %}
+        {% assign tag_handle = 'size:' | append: size | handle %}
+        <a href="#" class="filter-tag" title="{{ size }}" data-filter-type="size" data-filter-tags="{{ tag_handle }}">{{ size }}</a>
+      {% endfor %}     
+    {% endif %}
+  {% endcapture %}
+
+  {% capture shoe_sizes_html %}
+    {% if collection_shoe_sizes.size > 0 %}
+      {% for size in collection_shoe_sizes %}
+        {% assign tag_handle = 'size:' | append: size | handle %}
+        <a href="#" class="filter-tag" title="{{ size }}" data-filter-type="size" data-filter-tags="{{ tag_handle }}">
+          {{ size }}
+        </a>
+      {% endfor %}     
+    {% endif %}
+  {% endcapture %}
+
+  {% capture misc_sizes_html %}
+    {% if collection_misc_sizes.size > 0 %}
+      {% for size in collection_misc_sizes %}
+        {% assign tag_handle = 'size:' | append: size | handle %}
+        <a href="#" class="filter-tag" title="{{ size }}" data-filter-type="size" data-filter-tags="{{ tag_handle }}">{{ size }}</a>
+      {% endfor %}     
+    {% endif %}
+  {% endcapture %} 
+
+  {% capture sizes_html %}
+    {% if smlxl_sizes_html != blank %}
+      <div class="collection-filter-tags__row">
+        {{ smlxl_sizes_html }}
+      </div>
+    {% endif %}
+
+    {% if hat_sizes_html != blank %}
+      <div class="collection-filter-tags__row">
+        {% if show_labels %}
+          <div class="collection-filter-tags__row-label">Hats</div>
+        {% endif %}
+
+        {{ hat_sizes_html }}
+      </div>
+    {% endif %}
+
+    {% if shoe_sizes_html != blank %}
+      <div class="collection-filter-tags__row">
+        {% if show_labels %}
+          <div class="collection-filter-tags__row-label">Shoes</div>
+        {% endif %}
+
+        {{ shoe_sizes_html }}
+      </div>
+    {% endif %}
+
+    {% if misc_sizes_html != blank %}
+      <div class="collection-filter-tags__row">
+        {{ misc_sizes_html }}
+      </div>
+    {% endif %}  
+  {% endcapture %}
+
+  {% comment %}
+
+  // Start outputting HTML
+  ========================
+
+  {% endcomment %}
+
+  {% if sizes_html != blank %}
+    <div class="collection-filter-bar">
+      <div class="collection-filter-bar__row">
+        <div class="collection-filter-bar__entry">
+          <a href="#" class="collection-filter-bar__controls-toggle" data-filter-controls-toggle>
+            {% render 'svg-chevron-right' %}
+            Filter
+          </a>
+
+          <a href="#" class="collection-filter-bar__clear" data-clear-filters>
+            Clear All
+          </a>
+        </div>
+      </div>
+
+      {% comment %} Child elements will be opened via JS on page load or with UI interaction {% endcomment %}
+      <div class="collection-filter-bar__row">   
+        <div class="collection-filter-bar__entry">
+          <div class="collection-filter-tags" style="display: none" data-filter-controls>
+            
+            {% comment %} Already comes with tags__row classes {% endcomment %}
+            <div class="collection-filter-tags__type">
+              {{ sizes_html }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
