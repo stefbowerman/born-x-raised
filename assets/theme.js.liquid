@@ -1,3 +1,7 @@
+if (!window.luxon) {
+  console.warn('luxon.js required for certain theme functionality')
+}
+
 window.theme = window.theme || {};
 
 theme.icons = {
@@ -89,6 +93,12 @@ theme.utils = {
     }
 
     return rtn;
+  },
+
+  pad: function(n, width, z) {
+    z = z || '0';
+    n = n + '';
+    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
   }
 }
 
@@ -284,7 +294,75 @@ theme.TagFilter = (function() {
   return TagFilter;
 }());
 
+theme.CountdownClock = (function() {
 
+  function CountdownClock(el) {
+    this.$el = $(el)
+    this.$days = $('[data-days]', this.$el)
+    this.$hours = $('[data-hours]', this.$el)
+    this.$minutes = $('[data-minutes]', this.$el)
+    this.$seconds = $('[data-seconds]', this.$el)
+
+    this.endTime = luxon.DateTime.fromISO(this.$el.data('end-time'), { zone: 'America/Los_Angeles' })
+    this.expandedStyle = !!this.$el.data('expanded-style')
+
+    this.tick();
+    this.interval = setInterval(this.tick.bind(this), 1e3);
+  }
+
+  CountdownClock.prototype = {
+    destroy() {
+      clearInterval(this.interval)
+    },
+    tick: function() {
+      var nowTime = luxon.DateTime.now()
+      
+  
+      if (nowTime >= this.endTime) {
+        clearInterval(this.interval)
+      }
+
+      if (this.expandedStyle) {
+        var diff = this.endTime.diff(nowTime, ['days', 'seconds', 'minutes', 'hours', 'milliseconds'])
+  
+        if (nowTime >= this.endTime) {
+          diff = {
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+          }
+        }     
+
+        this.$days.text(theme.utils.pad(diff.days, 3, '0'))
+        this.$hours.text(theme.utils.pad(diff.hours, 2, '0'))
+        this.$minutes.text(theme.utils.pad(diff.minutes, 2, '0'))
+        this.$seconds.text(theme.utils.pad(diff.seconds, 2, '0'))
+      }
+      else {
+        var diff = this.endTime.diff(nowTime, ['seconds', 'minutes', 'hours', 'milliseconds'])
+
+        if (nowTime >= this.endTime) {
+          diff = {
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+          }
+        }
+
+        this.$el.text([
+          diff.hours,
+          diff.minutes,
+          diff.seconds
+        ].map(function(num) {
+          return theme.utils.pad(num, 2, '0');
+        }).join(':'))
+      }
+    }    
+  }
+
+  return CountdownClock;
+}());
 
 theme.Sections = new function(){
   var _ = this;
@@ -826,12 +904,22 @@ theme.HeaderSection = new function(){
         $clone.remove();
       }).trigger('resizenav');
     }
+
+    if ($('[data-countdown]', target).length) {
+      var $countdown = $('[data-countdown]', target)
+      
+      this.countdownClock = new theme.CountdownClock($countdown)
+    }
   }
   
   this.onSectionUnload = function(target){
     $('.main-nav', this).off('click mouseenter loadimg');
     $('body #mobile-nav').remove();
     $(window).off('.resizeNavFont');
+
+    if (this.countdownClock) {
+      this.countdownClock.destroy()
+    }
   }
 }
 
@@ -1326,6 +1414,22 @@ theme.FeaturedBlogSection = new function(){
   }
   
   this.onSectionUnload = function(target){
+  }
+}
+
+theme.CountdownSection = new function(){
+  this.onSectionLoad = function(target) {
+    if ($('[data-countdown]', target).length) {
+      var $countdown = $('[data-countdown]', target)
+      
+      this.countdownClock = new theme.CountdownClock($countdown)
+    }
+  }
+
+  this.onSectionUnload = function() {
+    if (this.countdownClock) {
+      this.countdownClock.destroy()
+    }
   }
 }
 
@@ -2310,6 +2414,7 @@ $(function($){
   theme.Sections.register('collection-listing', theme.CollectionListingSection);
   theme.Sections.register('featured-collection', theme.FeaturedCollectionSection);
   theme.Sections.register('search-template', theme.SearchTemplateSection);
+  theme.Sections.register('countdown', theme.CountdownSection);
   
 });
 

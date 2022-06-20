@@ -22,10 +22,26 @@
         style="
           --color: {{ section.settings.banner_text_color }};
           --background-color: {{ section.settings.banner_background_color }};
-        "      
+        "
         data-pencil-banner
       >
         <div class="pencil-banner__content">
+          {% if section.settings.banner_countdown_enabled and section.settings.banner_countdown_endtime != blank %}
+            <div class="pencil-banner__countdown">
+              {% if section.settings.banner_countdown_pretext != blank %}
+                {{ section.settings.banner_countdown_pretext }}
+              {% endif %}
+
+                <div class="countdown-clock" data-countdown data-end-time="{{ section.settings.banner_countdown_endtime }}">
+                
+                </div>
+
+              {% if section.settings.banner_countdown_posttext != blank %}
+                {{ section.settings.banner_countdown_posttext }}
+              {% endif %}
+            </div>
+          {% endif %}
+
           <div class="pencil-banner__content-desktop">{{ section.settings.banner_content }}</div>
           <div class="pencil-banner__content-mobile">{{ section.settings.banner_mobile_content | default: section.settings.banner_content }}</div>
         </div>
@@ -145,7 +161,7 @@
         "id": "banner_mobile_content",
         "type": "richtext", 
         "label": "Mobile Text",
-        "info": "Alternate text for small screens, will fall back to regular content if left blank"
+        "info": "Alternate text for small screens, will default to desktop text if left blank"
       },
       {
         "type": "color",
@@ -160,6 +176,29 @@
         "default": "#000"
       },
       {
+        "id": "banner_countdown_enabled",
+        "type": "checkbox",
+        "label": "Show Countdown",
+        "default": false
+      },
+      {
+        "id": "banner_countdown_endtime",
+        "type": "text",
+        "label": "Countdown End Time",
+        "default": "2022-10-17T07:00:00",
+        "info": "ISO 8601 Format.  Assumes America/Los_Angeles timezone"
+      },
+      {
+        "id": "banner_countdown_pretext",
+        "type": "text",
+        "label": "Countdown text (before timer)"
+      },
+      {
+        "id": "banner_countdown_posttext",
+        "type": "text",
+        "label": "Countdown text (after timer)"
+      },      
+      {
         "type": "header",
         "content": "Menu"
       },          
@@ -167,7 +206,7 @@
         "type": "link_list",
         "id": "menu_linklist",
         "label": "Menu",
-		"default": "main-menu"
+		    "default": "main-menu"
       },
       {
         "type": "select",
