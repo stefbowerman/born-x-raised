@@ -72,7 +72,7 @@
     {% assign size_imploded = size | downcase | replace: '_', '' | replace: '-', '' %}{% comment %} 'XX-Large' => 'xxlarge' {% endcomment %}
     {% assign size_number   = size | times: 1 %}
 
-    {% if 'os o-s o/s one size onesize xs xsmall extrasmall xsm s small sm m medium md l large lg xl xlarge extralarge 2xl xxl xxlarge extraextralarge 3xl xxxl xxxlarge extraextraextralarge' contains size_imploded %}
+    {% if 'os o-s o/s one size onesize xs xsmall extrasmall xsm s small sm m medium md l large lg xl xlarge extralarge 2xl 2xlarge xxl xxlarge extraextralarge 3xl 3xlarge xxxl xxxlarge extraextraextralarge 4xl 4xlarge xxxxl xxxxlarge extraextraextraextralarge' contains size_imploded %}
       {% assign collection_smlxl_sizes = collection_smlxl_sizes | append: size_imploded | append: '$$' %}
     {% elsif size_imploded contains '.' and size_number >= 5 and size_number <= 14 %}
       {% assign collection_shoe_sizes = collection_shoe_sizes | append: size_imploded | append: '$$' %}
@@ -88,18 +88,19 @@
   {% assign collection_shoe_sizes  = collection_shoe_sizes  | strip | split: '$$' | uniq %}
   {% assign collection_misc_sizes  = collection_misc_sizes  | strip | split: '$$' | uniq %}
 
-  {% comment %} Filter sorting for XS->XXXL {% endcomment %}
+  {% comment %} Filter sorting for XS->XXXXL {% endcomment %}
 
   {% capture smlxl_sizes_html %}
 
-    {% assign filter_onesize_tag  = '' %}
-    {% assign filter_xsmall_tag   = '' %}
-    {% assign filter_small_tag    = '' %}
-    {% assign filter_medium_tag   = '' %}
-    {% assign filter_large_tag    = '' %}
-    {% assign filter_xlarge_tag   = '' %}
-    {% assign filter_xxlarge_tag  = '' %}
-    {% assign filter_xxxlarge_tag = '' %}
+    {% assign filter_onesize_tag   = '' %}
+    {% assign filter_xsmall_tag    = '' %}
+    {% assign filter_small_tag     = '' %}
+    {% assign filter_medium_tag    = '' %}
+    {% assign filter_large_tag     = '' %}
+    {% assign filter_xlarge_tag    = '' %}
+    {% assign filter_xxlarge_tag   = '' %}
+    {% assign filter_xxxlarge_tag  = '' %}
+    {% assign filter_xxxxlarge_tag = '' %}
 
     {% if collection_smlxl_sizes.size > 0 %}
       {% for size in collection_smlxl_sizes %}
@@ -126,19 +127,22 @@
           {% when 'xxl' or '2xl' or '2xlarge' or 'xxlarge' or 'extraextralarge' %}
             {% assign filter_xxlarge_tag = filter_xxlarge_tag | append: " " | append: tag_handle | strip %}
           {% when 'xxxl' or '3xl' or '3xlarge' or 'xxxlarge' or 'extraextraextralarge' %}
-            {% assign filter_xxxlarge_tag = filter_xxxlarge_tag | append: " " | append: tag_handle | strip %}            
+            {% assign filter_xxxlarge_tag = filter_xxxlarge_tag | append: " " | append: tag_handle | strip %}
+          {% when 'xxxxl' or '4xl' or '4xlarge' or 'xxxxlarge' or 'extraextraextraextralarge' %}
+            {% assign filter_xxxxlarge_tag = filter_xxxxlarge_tag | append: " " | append: tag_handle | strip %}                     
         {% endcase %}
 
       {% endfor %}
 
-      {% if filter_onesize_tag  != blank or
-            filter_xsmall_tag   != blank or 
-            filter_small_tag    != blank or 
-            filter_medium_tag   != blank or 
-            filter_large_tag    != blank or 
-            filter_xlarge_tag   != blank or 
-            filter_xxlarge_tag  != blank or
-            filter_xxxlarge_tag != blank %}
+      {% if filter_onesize_tag   != blank or
+            filter_xsmall_tag    != blank or 
+            filter_small_tag     != blank or 
+            filter_medium_tag    != blank or 
+            filter_large_tag     != blank or 
+            filter_xlarge_tag    != blank or 
+            filter_xxlarge_tag   != blank or
+            filter_xxxlarge_tag  != blank or
+            filter_xxxxlarge_tag != blank %}
 
           {% if filter_onesize_tag != blank %}
             <a href="#" class="filter-tag" title="One Size" data-filter-type="size" data-filter-tags="{{ filter_onesize_tag }}">O/S</a>
@@ -171,6 +175,10 @@
           {% if filter_xxxlarge_tag != blank %}
             <a href="#" class="filter-tag" title="3X-Large" data-filter-type="size" data-filter-tags="{{ filter_xxxlarge_tag }}">3X-Large</a>
           {% endif %}
+
+          {% if filter_xxxxlarge_tag != blank %}
+            <a href="#" class="filter-tag" title="4X-Large" data-filter-type="size" data-filter-tags="{{ filter_xxxxlarge_tag }}">4X-Large</a>
+          {% endif %}          
 
       {% endif %}      
     {% endif %}
